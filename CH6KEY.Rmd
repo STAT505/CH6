@@ -1,0 +1,150 @@
+---
+title: "Regression and Other Stories: Regression Background"
+output: pdf_document
+---
+
+\renewcommand{\vec}[1]{\mathbf{#1}}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 3, fig.width = 5)
+library(tidyverse) 
+library(gridExtra)
+library(rstanarm)
+library(arm)
+set.seed(09222020)
+```
+
+Regression methods have two purposes: prediction and comparison. Regression allows prediction of the distribution of the outcome or distributions of comparisons (sometimes called contrasts).
+\vfill
+
+This section will focus on simulating fake data to understand models before fitting them to "non-fake" data.
+\vfill
+
+### Regression Models
+
+As we have seen, a regression model can be written as
+
+\begin{equation}
+*y = \beta_0 + \beta_1 x + \epsilon*,
+\end{equation}
+
+where $y$ is the outcome variable, $x$ is a predictor, $\beta_0$ and $\beta_1$ are coefficients that correspond to the linear relationship between $y$ and $x$ (slope and intercept, respectively), and $\epsilon$ is the error term.
+
+\vfill
+
+Note ROS suggests interpreting $\beta_0$ and $\beta_1$ as a comparison not an __effect.__ They suggest __effect__ is reserved for causal inference.
+
+\vfill
+
+*While the linear model (and the functional form between $x$ and $y$) may seem overly restrictive, there are many extensions.*
+
+- more predictors: *$y = \beta_0 + \beta_1 x_1 + ... + \beta_p x_p + \epsilon$*
+
+\vfill
+
+- non-linear model: *$\log{y} = \beta_0 + \beta_1 \log{x_1}  + \epsilon$*
+
+\vfill
+
+- non-additive models: interaction $y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \beta_3 x_1 x_2 + \epsilon$
+
+    - _Q_ assume x_2 is binary and sketch the model fit for this interaction model
+    
+\vfill
+
+- generalized-linear models: *allow non-normal probability distributions for discrete (or other) responses*
+
+\vfill
+
+- non-parametric models: fit curves for the relationships between $y$ and $x$. *power basis function or Gaussian process (534)*
+
+\vfill
+
+- Multilevel (hierarchical) models: coefficients can vary by group (506)
+
+\newpage
+
+### Regression Models for Fake Data
+
+_Activity:_ Simulate fake data and fit a regression model to the data. 
+
+\vfill
+
+1. Simulate Fake Data
+```{r}
+n <- 30
+x <- runif(n, -1, 1)
+beta <- c(2,3)
+X <- cbind(rep(1,n), x)
+X_beta <- X %*% beta
+sigma <- .5
+y <- rnorm(n, mean = X_beta, sd  = sigma)
+data_tibble <- tibble(y = y, x = x)
+```
+\vfill
+
+2. Visualize Fake Data
+```{r , fig.cap = 'Fake data with n = 30, beta = (3, 3), sigma = .5', fig.align = 'center'}
+data_tibble %>%
+  ggplot(aes(y=y,x=x)) + 
+  geom_point() +
+  labs(title = 'Fake Data Simulation') +
+  geom_smooth(method = 'lm', formula = "y ~ x") + 
+  theme_minimal()
+```
+
+\vfill
+
+\newpage
+
+3. Fit Model
+
+- `lm`
+```{r}
+lm_fit <- lm(y ~ x, data = data_tibble)
+display(lm_fit)
+```
+\vfill
+
+- `stan_glm()`
+```{r}
+stan_fit <- stan_glm(y ~ x, data = data_tibble, refresh = 0)
+print(stan_fit)
+```
+
+\vfill
+
+4. Estimate comparison
+
+- How to the estimates compare to the true values: *Close but not exact*
+\vfill
+- What happens as $n$ gets larger or smaller? 
+
+\newpage
+
+### History of Regression
+
+'"Regression" is defined in the dictionary as "the process or an instance of regressing, as to a less perfect or less developed state."' The term was first used in the statistical context by Francis Galton, who used linear models to understand the effect of heredity on human height. _In a related note and a darker side of statistical history, Galton also put a lot of work into eugenics._
+
+\vfill
+
+Predicting a child's height form parents height he noticed that tall parents tended to have children that were taller than average, but shorter than the parent. Similarly, short parents tended to have children that were shorter than average, but taller than the parent. Thus the people's heights __regressed__ to the average heights.
+
+\vfill
+
+The model from this data can be written as
+
+\begin{align}
+y =& 30 + .54 x + error\\
+y = & 65.1 + .54(x - 65) + error
+\end{align}
+
+So for an average height woman (65 inches), the daughter would also be predicted to be about 65 inches. Then for each additional inch the daughter would be expected to deviate by $\pm .54$ inches.
+
+\vfill
+
+It might seem that the heights of the daughters would eventually collapse to 65 inches, but there is enough variability in the prediction (distribution of the predicted outcome) that the overall variation has stayed fairly constant. In other words, it is possible that a tall mother can have an even taller daughter.
+
+\vfill
+
+This phenemenon (regression to the mean) can sometimes be confused with causality. The textbook talks about student test scores on a midterm and a final exam.
